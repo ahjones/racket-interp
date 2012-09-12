@@ -1,14 +1,45 @@
 #lang plai
 
-(define-type MisspelledAnimal
-  [caml (humps number?)]
-  [yacc (height number?)])
-
-
-(define-type ArithC
+(define-type ExprC
   [numC (n number?)]
-  [plusC (l ArithC?) (r ArithC?)]
-  [multC (l ArithC?) (r ArithC?)])
+  [idC (s symbol?)]
+  [appC (fun symbol?) (arg ExprC?)]
+  [plusC (l ExprC?) (r ExprC?)]
+  [multC (l ExprC?) (r ExprC)])
+
+(define (interp e fds)
+  (type-case ExprC e
+    [appC (f a) (local ([define fd (get-fundef f fds)])
+                  (interp (subst a
+                                 (fdC-arg fd)
+                                 (fdC-body fs))
+                          fds))]
+    [idC (_) (error 'interp "shouldn't get here")]
+    [numC (n) n]
+    [plusC (l r) (+ (interp l fds) (interp r fds))]
+    [multC (l r) (* (interp l fds) (interp r fds))]))
+
+(define-type FunDefC
+  [fdC (name symbol?) (arg symbol?) (body ExprC?)])
+
+(define (get-fundef n fds)
+  (cond
+    [(empty? fds) (error 'get-fundef "reference to undefined function")]
+    [(cons? fds) (cond
+                   [(symbol=? n (fdC-name (first fds))) (first fds)]
+                   [else (get-fundef n (rest fds))])]))
+
+(define (subst what for in)
+  (type-case ExprC in
+    [numC (n) in]
+    [idC (s) (cond
+               [(symbol=? s for) what]
+               [else in])]
+    [appC (f a) (appC f (subst what for a))]
+    [plusC (l r) (plusC (subst what for l)
+                        (subst what for r))]
+    [multC (l r) (multC (subst what for l)
+                        (subst what for r))]))
 
 (define (parse e)
   (cond
