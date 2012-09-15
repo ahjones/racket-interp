@@ -63,11 +63,11 @@
     [multS (l r) (multC (desugar l) (desugar r))]
     [bminusS (l r) (plusC (desugar l) (multC (numC -1) (desugar r)))]))
 
-(test 0 (interp (numC 0)))
-(test 1 (interp (plusC (numC 1) (numC 0))))
-(test 6 (interp (multC (numC 2) (numC 3))))
-(test 7 (interp (plusC (numC 1) (multC (numC 2) (numC 3)))))
-(test 2 (interp (desugar (parse '(- 4 2)))))
+(test 0 (interp (numC 0) '()))
+(test 1 (interp (plusC (numC 1) (numC 0)) '()))
+(test 6 (interp (multC (numC 2) (numC 3)) '()))
+(test 7 (interp (plusC (numC 1) (multC (numC 2) (numC 3))) '()))
+(test 2 (interp (desugar (parse '(- 4 2))) '()))
 
   
 
