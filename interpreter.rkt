@@ -5,14 +5,14 @@
   [idC (s symbol?)]
   [appC (fun symbol?) (arg ExprC?)]
   [plusC (l ExprC?) (r ExprC?)]
-  [multC (l ExprC?) (r ExprC)])
+  [multC (l ExprC?) (r ExprC?)])
 
 (define (interp e fds)
   (type-case ExprC e
     [appC (f a) (local ([define fd (get-fundef f fds)])
                   (interp (subst a
                                  (fdC-arg fd)
-                                 (fdC-body fs))
+                                 (fdC-body fd))
                           fds))]
     [idC (_) (error 'interp "shouldn't get here")]
     [numC (n) n]
@@ -50,12 +50,6 @@
        [(*) (multS (parse (second e)) (parse (third e)))]
        [(-) (bminusS (parse (second e)) (parse (third e)))])]))
 
-(define (interp a)
-  (type-case ArithC a
-    [numC (n) n]
-    [plusC (l r) (+ (interp l) (interp r))]
-    (multC (l r) (* (interp l) (interp r)))))
-
 (define-type ArithS
   [numS (n number?)]
   [plusS (l ArithS?) (r ArithS?)]
@@ -68,9 +62,6 @@
     [plusS (l r) (plusC (desugar l) (desugar r))]
     [multS (l r) (multC (desugar l) (desugar r))]
     [bminusS (l r) (plusC (desugar l) (multC (numC -1) (desugar r)))]))
-
-(define-type FunDefC
-  [fdC (name symbol?) (arg symbol?) (body exprC)])
 
 (test 0 (interp (numC 0)))
 (test 1 (interp (plusC (numC 1) (numC 0))))
