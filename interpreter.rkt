@@ -3,32 +3,44 @@
 (define-type ExprC
   [numC (n : number)]
   [idC (s : symbol)]
-  [appC (fun : symbol) (arg : ExprC)]
+  [appC (fun : ExprC) (arg : ExprC)]
   [plusC (l : ExprC) (r : ExprC)]
-  [multC (l : ExprC) (r : ExprC)])
+  [multC (l : ExprC) (r : ExprC)]
+  [fdC (name : symbol) (arg : symbol) (body : ExprC)])
 
-(define (interp [expr : ExprC] [env : Env] [fds : (listof FunDefC)]) : number
+(define (interp [expr : ExprC] [env : Env]) : Value
   (type-case ExprC expr
-    [numC (n) n]
-    [plusC (l r) (+ (interp l env fds) (interp r env fds))]
-    [multC (l r) (* (interp l env fds) (interp r env fds))]
+    [numC (n) (numV n)]
     [idC (n) (lookup n env)]
-    [appC (f a) (local ([define fd (get-fundef f fds)])
+    [appC (f a) (local ([define fd f])
                   (interp (fdC-body fd)
                           (extend-env (bind (fdC-arg fd)
-                                            (interp a env fds))
-                                      mt-env)
-                          fds))]
-    ))
+                                            (interp a env))
+                                      mt-env)))]
+    [plusC (l r) (num+ (interp l env) (interp r env))]
+    [multC (l r) (num* (interp l env) (interp r env))]
+    [fdC (n a b) (funV n a b)]
+  ))
 
-(define (lookup [n : symbol] [env : Env]) : number
+(define (num+ [l : Value] [r : Value]) : Value
+  (cond
+    [(and (numV? l) (numV? r)) (numV (+ (numV-n l) (numV-n r)))]
+    [else (error 'num+ "one argument was not a number")]))
+
+(define (num* [l : Value] [r : Value]) : Value
+  (cond
+    [(and (numV? l) (numV? r)) (numV (* (numV-n l) (numV-n r)))]
+    [else (error 'num* "one argument was not a number")]))
+  
+(define-type Value
+  [numV (n : number)]
+  [funV (name : symbol) (arg : symbol) (body : ExprC)])
+
+(define (lookup [n : symbol] [env : Env]) : Value
   (cond
     [(empty? env) (error 'lookup "Couldn't find binding")]
     [else (if (symbol=? n (bind-name (first env))) (bind-val (first env)) 
                    (lookup n (rest env)))]))
-
-(define-type FunDefC
-  [fdC (name : symbol) (arg : symbol) (body : ExprC)])
 
 (define (get-fundef n fds)
   (cond
@@ -67,7 +79,7 @@
     [uminusS (n) (plusC (numC 0) (multC (numC -1) (desugar n)))]))
 
 (define-type Binding
-  [bind (name : symbol) (val : number)])
+  [bind (name : symbol) (val : Value)])
 
 (define-type-alias Env (listof Binding))
 (define mt-env empty)
