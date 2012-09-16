@@ -12,11 +12,13 @@
   (type-case ExprC expr
     [numC (n) (numV n)]
     [idC (n) (lookup n env)]
-    [appC (f a) (local ([define fd f])
-                  (interp (fdC-body fd)
-                          (extend-env (bind (fdC-arg fd)
-                                            (interp a env))
-                                      mt-env)))]
+    [appC (f a) (local ([define v (interp f env)])
+                  (cond
+                    [(funV? v) (interp (funV-body v)
+                                       (extend-env (bind (funV-arg v)
+                                                         (interp a env))
+                                                   mt-env))]
+                    [else (error 'interp "no function to apply")]))]
     [plusC (l r) (num+ (interp l env) (interp r env))]
     [multC (l r) (num* (interp l env) (interp r env))]
     [fdC (n a b) (funV n a b)]
@@ -85,13 +87,15 @@
 (define mt-env empty)
 (define extend-env cons)
 
-(test (interp (plusC (numC 10) (appC 'const5 (numC 10)))
-              mt-env
-              (list (fdC 'const5 '_ (numC 5))))
-      15)
+(test (interp (plusC (numC 10) (appC (fdC 'const5 '_ (numC 5)) (numC 10)))
+              mt-env)
+      (numV 15))
 
-(test (interp (plusC (numC 10) (appC 'double (plusC (numC 1) (numC 2))))
-              mt-env
-              (list (fdC 'double 'x (plusC (idC 'x) (idC 'x)))))
-      16)
+ 
 
+(test (interp (appC (fdC 'f 'a (idC 'a)) (numC 1)) mt-env) (numV 1))
+
+(test (interp
+       (appC (appC (fdC 'g 'b (fdC 'f 'a (idC 'b))) (numC 0)) (numC 10))
+       mt-env)
+      (numV 0))
