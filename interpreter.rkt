@@ -47,12 +47,6 @@
   [closV (arg : symbol) (body : ExprC) (env : Env)]
   [boxV (v : Value)])
 
-(define (lookup [n : symbol] [env : Env]) : Value
-  (cond
-    [(empty? env) (error 'lookup "Couldn't find binding")]
-    [else (if (symbol=? n (bind-name (first env))) (bind-val (first env)) 
-                   (lookup n (rest env)))]))
-
 (define (parse [e : s-expression])
   (cond
     [(s-exp-number? e) (numS (s-exp->number e))]
@@ -97,7 +91,20 @@
 
 (define-type-alias Store (listof Storage))
 (define mt-store empty)
-(defnine override-store cons)
+(define override-store cons)
+
+(define (lookup [for : symbol] [env : Env]) : Location
+  (cond
+    [(empty? env) (error 'lookup "Couldn't find binding")]
+    [else (if (symbol=? for (bind-name (first env))) (bind-val (first env))
+              (lookup for (rest env)))]))
+
+(define (fetch [loc : Location] [sto : Store]) : Value
+  (cond
+    [(empty? sto) (error 'fetch "Couldn't find value")]
+    [else (if (equal? loc (cell-location (first sto)))
+              (cell-val (first sto))
+              (fetch loc (rest sto)))]))
 
 (print-only-errors true)
 (test (interp (boxC (numC 18)) mt-env) (boxV (numV 18)))
