@@ -44,7 +44,6 @@
                              (v*s v-val
                                   (override-store (cell where v-val)
                                                   s-val)))])]))
-          
 
 (define (num+ [l : Value] [r : Value]) : Value
   (cond
